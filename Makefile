@@ -6,7 +6,7 @@ SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl.cpp $(IMGUI_DIR)/backends/imgui_
 OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 
 CXXFLAGS = -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
-CXXFLAGS += -g -Wall -Wformat
+CXXFLAGS += -std=c++17 -O2 -Wall -Wformat
 CXXFLAGS += -DIMGUI_IMPL_OPENGL_ES2
 CXXFLAGS += `sdl2-config --cflags`
 LIBS = -lGLESv2 -ldl `sdl2-config --libs`

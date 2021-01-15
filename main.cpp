@@ -39,15 +39,15 @@ void run(SDL_Window* pWindow, const char* inputFilename)
 
   {
     std::ifstream file(inputFilename, std::ios::ate);
-    const size_t fileSize = file.tellg();
+    const auto fileSize = file.tellg();
     file.seekg(0);
     inputText.resize(fileSize);
     file.read(&inputText[0], fileSize);
   }
 
-  ImGuiIO& io = ImGui::GetIO();
+  auto& io = ImGui::GetIO();
 
-  bool running = true;
+  auto running = true;
   while (running)
   {
     SDL_Event event;
@@ -72,7 +72,7 @@ void run(SDL_Window* pWindow, const char* inputFilename)
     ImGui::NewFrame();
 
     // Draw single window with scrollable text
-    const ImVec2 windowSize = io.DisplaySize;
+    const auto& windowSize = io.DisplaySize;
     ImGui::SetNextWindowSize(windowSize);
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::Begin(
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
   SDL_DisplayMode displayMode;
   SDL_GetDesktopDisplayMode(0, &displayMode);
 
-  SDL_Window* pWindow = SDL_CreateWindow(
+  auto pWindow = SDL_CreateWindow(
     "Log Viewer",
     SDL_WINDOWPOS_CENTERED,
     SDL_WINDOWPOS_CENTERED,
@@ -131,14 +131,14 @@ int main(int argc, char** argv)
     displayMode.h,
     SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_ALLOW_HIGHDPI);
 
-  SDL_GLContext pGlContext = SDL_GL_CreateContext(pWindow);
+  auto pGlContext = SDL_GL_CreateContext(pWindow);
   SDL_GL_MakeCurrent(pWindow, pGlContext);
   SDL_GL_SetSwapInterval(1); // Enable vsync
 
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
+  auto& io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
   ImGui_ImplOpenGL3_Init(nullptr);
 
   // Main loop
-  const char* inputFilename = argv[1];
+  const auto inputFilename = argv[1];
   run(pWindow, inputFilename);
 
   // Cleanup
