@@ -46,6 +46,8 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
       .show_positional_help()
       .add_options()
         ("input_file", "text file to view", cxxopts::value<std::string>())
+        ("f,font_size", "font size in pixels", cxxopts::value<int>())
+        ("t,title", "window title (filename by default)", cxxopts::value<std::string>())
         ("h,help", "show help")
       ;
 
@@ -99,6 +101,9 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     file.read(&inputText[0], fileSize);
   }
 
+  const auto windowTitle = args.count("title")
+    ? args["title"].as<std::string>() : inputFilename;
+
   auto& io = ImGui::GetIO();
 
   auto running = true;
@@ -130,7 +135,7 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui::SetNextWindowSize(windowSize);
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::Begin(
-      inputFilename.c_str(),
+      windowTitle.c_str(),
       &running,
       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
@@ -153,11 +158,13 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 
 int main(int argc, char** argv)
 {
-  const auto args = parseArgs(argc, argv);
-  if (!args)
+  const auto oArgs = parseArgs(argc, argv);
+  if (!oArgs)
   {
     return -2;
   }
+
+  const auto& args = *oArgs;
 
   // Setup SDL
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -199,12 +206,19 @@ int main(int argc, char** argv)
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
 
+  if (args.count("font_size"))
+  {
+    ImFontConfig config;
+    config.SizePixels = args["font_size"].as<int>();
+    ImGui::GetIO().Fonts->AddFontDefault(&config);
+  }
+
   // Setup Platform/Renderer bindings
   ImGui_ImplSDL2_InitForOpenGL(pWindow, pGlContext);
   ImGui_ImplOpenGL3_Init(nullptr);
 
   // Main loop
-  run(pWindow, *args);
+  run(pWindow, args);
 
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
