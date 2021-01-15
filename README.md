@@ -36,6 +36,17 @@ text_viewer <file>
 
 With `<file>` being a text file you'd like to show.
 
-While running, you can scroll up and down using the analog sticks.
-Holding LB while scrolling scrolls faster, RB makes it slower.
-Press button B to quit.
+You can also customize various options like font size, window title etc.
+Run `text_viewer --help` to learn more.
+
+## Controls
+
+You can scroll up and down using the analog sticks or d-pad.
+Holding RB while scrolling scrolls faster, LB makes it slower.
+
+To quit, press button B to unfocus the text display.
+You can now use the d-pad to toggle between the close button and the text.
+Press button A once the close button is selected to quit.
+When having the text selected instead,
+button A will enter scrolling mode again.
+
