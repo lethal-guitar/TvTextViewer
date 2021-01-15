@@ -107,6 +107,7 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   auto& io = ImGui::GetIO();
 
   auto running = true;
+  auto focused = false;
   while (running)
   {
     SDL_Event event;
@@ -117,9 +118,7 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
           event.type == SDL_QUIT ||
           (event.type == SDL_WINDOWEVENT &&
            event.window.event == SDL_WINDOWEVENT_CLOSE &&
-           event.window.windowID == SDL_GetWindowID(pWindow)) ||
-          (event.type == SDL_CONTROLLERBUTTONDOWN &&
-           event.cbutton.button == SDL_CONTROLLER_BUTTON_B)
+           event.window.windowID == SDL_GetWindowID(pWindow))
         ) {
           running = false;
         }
@@ -137,9 +136,33 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui::Begin(
       windowTitle.c_str(),
       &running,
-      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+      ImGuiWindowFlags_NoCollapse |
+      ImGuiWindowFlags_NoResize |
+      ImGuiWindowFlags_NoSavedSettings);
 
+    const auto buttonSpaceRequired =
+      ImGui::CalcTextSize("Close", nullptr, true).y +
+      ImGui::GetStyle().FramePadding.y * 2.0f;
+    const auto maxTextHeight = ImGui::GetContentRegionAvail().y -
+      ImGui::GetStyle().ItemSpacing.y -
+      buttonSpaceRequired;
+
+    if (!focused)
+    {
+      ImGui::SetNextWindowFocus();
+      focused = true;
+    }
+
+    ImGui::BeginChild("#scroll_area", {0, maxTextHeight}, true);
     ImGui::TextUnformatted(inputText.c_str());
+    ImGui::EndChild();
+
+    const auto buttonWidth = windowSize.x / 3.0f;
+    ImGui::SetCursorPosX((windowSize.x - buttonWidth) / 2.0f);
+    if (ImGui::Button("Close", {buttonWidth, 0.0f}))
+    {
+      running = false;
+    }
 
     ImGui::End();
 
