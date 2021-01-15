@@ -23,18 +23,72 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
 
-#include <SDL.h>
+#include <cxxopts.hpp>
 #include <GLES2/gl2.h>
+#include <SDL.h>
 
-#include <stdio.h>
+#include <cstdlib>
+#include <iostream>
 #include <fstream>
 
 
 namespace
 {
 
-void run(SDL_Window* pWindow, const char* inputFilename)
+std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
 {
+  try
+  {
+    cxxopts::Options options(argv[0], "TvTextViewer - a full-screen text viewer");
+
+    options
+      .positional_help("[input file]")
+      .show_positional_help()
+      .add_options()
+        ("input_file", "text file to view", cxxopts::value<std::string>())
+        ("h,help", "show help")
+      ;
+
+    options.parse_positional({"input_file"});
+
+    try
+    {
+      const auto result = options.parse(argc, argv);
+
+      if (result.count("help"))
+      {
+        std::cout << options.help({""}) << '\n';
+        std::exit(0);
+      }
+
+      if (!result.count("input_file"))
+      {
+        std::cerr << "Error: No input given\n\n";
+        std::cerr << options.help({""}) << '\n';
+        return {};
+      }
+
+      return result;
+    }
+    catch (const cxxopts::OptionParseException& e)
+    {
+      std::cerr << "Error: " << e.what() << "\n\n";
+      std::cerr << options.help({""}) << '\n';
+    }
+  }
+  catch (const cxxopts::OptionSpecException& e)
+  {
+    std::cerr << "Error defining options: " << e.what() << '\n';
+  }
+
+  return {};
+}
+
+
+void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
+{
+  const auto& inputFilename = args["input_file"].as<std::string>();
+
   std::string inputText;
 
   {
@@ -76,7 +130,7 @@ void run(SDL_Window* pWindow, const char* inputFilename)
     ImGui::SetNextWindowSize(windowSize);
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::Begin(
-      inputFilename,
+      inputFilename.c_str(),
       &running,
       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 
@@ -99,16 +153,16 @@ void run(SDL_Window* pWindow, const char* inputFilename)
 
 int main(int argc, char** argv)
 {
-  if (argc <= 1)
+  const auto args = parseArgs(argc, argv);
+  if (!args)
   {
-    printf("No input given\n");
-    return 0;
+    return -2;
   }
 
   // Setup SDL
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
   {
-    printf("Error: %s\n", SDL_GetError());
+    std::cerr << "Error: " << SDL_GetError() << '\n';
     return -1;
   }
 
@@ -150,8 +204,7 @@ int main(int argc, char** argv)
   ImGui_ImplOpenGL3_Init(nullptr);
 
   // Main loop
-  const auto inputFilename = argv[1];
-  run(pWindow, inputFilename);
+  run(pWindow, *args);
 
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
