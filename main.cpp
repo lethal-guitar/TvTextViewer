@@ -20,6 +20,7 @@
   */
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
 
@@ -113,7 +114,6 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   auto& io = ImGui::GetIO();
 
   auto running = true;
-  auto focused = false;
   while (running)
   {
     SDL_Event event;
@@ -155,10 +155,9 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       ImGui::GetStyle().ItemSpacing.y -
       buttonSpaceRequired;
 
-    if (!focused)
+    if (ImGui::IsWindowAppearing() && !showYesNoButtons)
     {
       ImGui::SetNextWindowFocus();
-      focused = true;
     }
 
     ImGui::BeginChild("#scroll_area", {0, maxTextHeight}, true);
@@ -183,6 +182,14 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       {
         running = false;
         exityes = false;
+      }
+
+      // Auto-focus the yes button
+      if (ImGui::IsWindowAppearing())
+      {
+        ImGui::SetFocusID(ImGui::GetID("Yes"), ImGui::GetCurrentWindow());
+        ImGui::GetCurrentContext()->NavDisableHighlight = false;
+        ImGui::GetCurrentContext()->NavDisableMouseHover = true;
       }
     } else {
       const auto buttonWidth = windowSize.x / 3.0f;
