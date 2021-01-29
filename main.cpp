@@ -35,6 +35,8 @@
 namespace
 {
 
+auto exityes = false;
+
 std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
 {
   try
@@ -48,6 +50,8 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
         ("input_file", "text file to view", cxxopts::value<std::string>())
         ("f,font_size", "font size in pixels", cxxopts::value<int>())
         ("t,title", "window title (filename by default)", cxxopts::value<std::string>())
+        ("y,yes_button", "shows a yes button with different exit code")
+        ("e,error_display", "format as error, background will be red")
         ("h,help", "show help")
       ;
 
@@ -104,6 +108,8 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   const auto windowTitle = args.count("title")
     ? args["title"].as<std::string>() : inputFilename;
 
+  const auto showYesNoButtons = args.count("yes_button");
+
   auto& io = ImGui::GetIO();
 
   auto running = true;
@@ -159,11 +165,32 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui::TextUnformatted(inputText.c_str());
     ImGui::EndChild();
 
-    const auto buttonWidth = windowSize.x / 3.0f;
-    ImGui::SetCursorPosX((windowSize.x - buttonWidth) / 2.0f);
-    if (ImGui::Button("Close", {buttonWidth, 0.0f}))
-    {
-      running = false;
+    if (showYesNoButtons) {
+      const auto buttonWidth = windowSize.x / 3.0f;
+      ImGui::SetCursorPosX(
+        (windowSize.x - (buttonWidth * 2 + ImGui::GetStyle().ItemSpacing.x))
+        / 2.0f);
+
+      if (ImGui::Button("Yes", {buttonWidth, 0.0f}))
+      {
+        running = false;
+        exityes = true;
+      }
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("No", {buttonWidth, 0.0f}))
+      {
+        running = false;
+        exityes = false;
+      }
+    } else {
+      const auto buttonWidth = windowSize.x / 3.0f;
+      ImGui::SetCursorPosX((windowSize.x - buttonWidth) / 2.0f);
+      if (ImGui::Button("Close", {buttonWidth, 0.0f}))
+      {
+        running = false;
+      }
     }
 
     ImGui::End();
@@ -231,6 +258,11 @@ int main(int argc, char** argv)
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
 
+  if (args.count("error_display")) {
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(ImColor(94, 11, 22, 255))); // Set window background to red
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(ImColor(94, 11, 22, 255)));
+  }
+
   if (args.count("font_size"))
   {
     ImFontConfig config;
@@ -254,5 +286,10 @@ int main(int argc, char** argv)
   SDL_DestroyWindow(pWindow);
   SDL_Quit();
 
-  return 0;
+  if (exityes == true)
+  {
+    return 21; //return 21 if selected yes, this is for checking return code in bash scripts
+  } else {
+    return 0;
+  }
 }
