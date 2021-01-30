@@ -49,6 +49,7 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
       .show_positional_help()
       .add_options()
         ("input_file", "text file to view", cxxopts::value<std::string>())
+        ("m,message", "text to show instead of viewing a file", cxxopts::value<std::string>())
         ("f,font_size", "font size in pixels", cxxopts::value<int>())
         ("t,title", "window title (filename by default)", cxxopts::value<std::string>())
         ("y,yes_button", "shows a yes button with different exit code")
@@ -68,9 +69,16 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
         std::exit(0);
       }
 
-      if (!result.count("input_file"))
+      if (!result.count("input_file") && !result.count("message"))
       {
         std::cerr << "Error: No input given\n\n";
+        std::cerr << options.help({""}) << '\n';
+        return {};
+      }
+
+      if (result.count("input_file") && result.count("message"))
+      {
+        std::cerr << "Error: Cannot use input_file and message at the same time\n\n";
         std::cerr << options.help({""}) << '\n';
         return {};
       }
@@ -92,23 +100,53 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
 }
 
 
-void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
+std::string readInput(const cxxopts::ParseResult& args)
 {
-  const auto& inputFilename = args["input_file"].as<std::string>();
-
-  std::string inputText;
-
+  if (args.count("input_file"))
   {
+    const auto& inputFilename = args["input_file"].as<std::string>();
     std::ifstream file(inputFilename, std::ios::ate);
     const auto fileSize = file.tellg();
     file.seekg(0);
+
+    std::string inputText;
     inputText.resize(fileSize);
     file.read(&inputText[0], fileSize);
+
+    return inputText;
   }
+  else
+  {
+    return args["message"].as<std::string>();
+  }
+}
 
-  const auto windowTitle = args.count("title")
-    ? args["title"].as<std::string>() : inputFilename;
 
+std::string determineTitle(const cxxopts::ParseResult& args)
+{
+  if (args.count("title"))
+  {
+    return args["title"].as<std::string>();
+  }
+  else if (args.count("input_file"))
+  {
+    return args["input_file"].as<std::string>();
+  }
+  else if (args.count("error_display"))
+  {
+    return "Error!!";
+  }
+  else
+  {
+    return "Info";
+  }
+}
+
+
+void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
+{
+  const auto inputText = readInput(args);
+  const auto windowTitle = determineTitle(args);
   const auto showYesNoButtons = args.count("yes_button");
 
   auto& io = ImGui::GetIO();
