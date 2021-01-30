@@ -106,6 +106,11 @@ std::string readInput(const cxxopts::ParseResult& args)
   {
     const auto& inputFilename = args["input_file"].as<std::string>();
     std::ifstream file(inputFilename, std::ios::ate);
+    if (!file.is_open())
+    {
+      return {};
+    }
+
     const auto fileSize = file.tellg();
     file.seekg(0);
 
