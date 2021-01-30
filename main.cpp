@@ -31,12 +31,11 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <optional>
 
 
 namespace
 {
-
-auto exityes = false;
 
 std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
 {
@@ -148,7 +147,7 @@ std::string determineTitle(const cxxopts::ParseResult& args)
 }
 
 
-void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
+int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 {
   const auto inputText = readInput(args);
   const auto windowTitle = determineTitle(args);
@@ -156,6 +155,7 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 
   auto& io = ImGui::GetIO();
 
+  auto exitCode = 0;
   auto running = true;
   while (running)
   {
@@ -180,7 +180,7 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui_ImplSDL2_NewFrame(pWindow);
     ImGui::NewFrame();
 
-    // Draw single window with scrollable text
+    // Draw the UI
     const auto& windowSize = io.DisplaySize;
     ImGui::SetNextWindowSize(windowSize);
     ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -207,6 +207,7 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui::TextUnformatted(inputText.c_str());
     ImGui::EndChild();
 
+    // Draw buttons
     if (showYesNoButtons) {
       const auto buttonWidth = windowSize.x / 3.0f;
       ImGui::SetCursorPosX(
@@ -215,8 +216,9 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 
       if (ImGui::Button("Yes", {buttonWidth, 0.0f}))
       {
+        // return 21 if selected yes, this is for checking return code in bash scripts
+        exitCode = 21;
         running = false;
-        exityes = true;
       }
 
       ImGui::SameLine();
@@ -224,7 +226,6 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       if (ImGui::Button("No", {buttonWidth, 0.0f}))
       {
         running = false;
-        exityes = false;
       }
 
       // Auto-focus the yes button
@@ -253,6 +254,8 @@ void run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(pWindow);
   }
+
+  return exitCode;
 }
 
 }
@@ -325,7 +328,7 @@ int main(int argc, char** argv)
   ImGui_ImplOpenGL3_Init(nullptr);
 
   // Main loop
-  run(pWindow, args);
+  const auto exitCode = run(pWindow, args);
 
   // Cleanup
   ImGui_ImplOpenGL3_Shutdown();
@@ -336,10 +339,5 @@ int main(int argc, char** argv)
   SDL_DestroyWindow(pWindow);
   SDL_Quit();
 
-  if (exityes == true)
-  {
-    return 21; //return 21 if selected yes, this is for checking return code in bash scripts
-  } else {
-    return 0;
-  }
+  return exitCode;
 }
