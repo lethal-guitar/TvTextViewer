@@ -99,6 +99,39 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
 }
 
 
+std::string replaceEscapeSequences(const std::string& original)
+{
+  std::string result;
+  result.reserve(original.size());
+
+  for (auto iChar = original.begin(); iChar != original.end(); ++iChar)
+  {
+    if (*iChar == '\\' && std::next(iChar) != original.end())
+    {
+      switch (*std::next(iChar))
+      {
+        case 'f': result.push_back('\f'); ++iChar; break;
+        case 'n': result.push_back('\n'); ++iChar; break;
+        case 'r': result.push_back('\r'); ++iChar; break;
+        case 't': result.push_back('\t'); ++iChar; break;
+        case 'v': result.push_back('\v'); ++iChar; break;
+        case '\\': result.push_back('\\'); ++iChar; break;
+
+        default:
+          result.push_back(*iChar);
+          break;
+      }
+    }
+    else
+    {
+      result.push_back(*iChar);
+    }
+  }
+
+  return result;
+}
+
+
 std::string readInput(const cxxopts::ParseResult& args)
 {
   if (args.count("input_file"))
@@ -121,7 +154,7 @@ std::string readInput(const cxxopts::ParseResult& args)
   }
   else
   {
-    return args["message"].as<std::string>();
+    return replaceEscapeSequences(args["message"].as<std::string>());
   }
 }
 
