@@ -188,6 +188,10 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 
   auto& io = ImGui::GetIO();
 
+  if (SDL_GameControllerAddMappingsFromFile("/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt") < 0)
+  {
+    printf("gamecontrollerdb.txt not found!\n");
+  }
   auto exitCode = 0;
   auto running = true;
   while (running)
