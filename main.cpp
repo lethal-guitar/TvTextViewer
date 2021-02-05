@@ -182,6 +182,32 @@ std::string determineTitle(const cxxopts::ParseResult& args)
 
 int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 {
+  std::vector<SDL_GameController*> gameControllers;
+
+  auto clearGameControllers = [&]()
+  {
+    for (const auto pController : gameControllers)
+    {
+      SDL_GameControllerClose(pController);
+    }
+
+    gameControllers.clear();
+  };
+
+  auto enumerateGameControllers = [&]()
+  {
+    clearGameControllers();
+
+    for (std::uint8_t i = 0; i < SDL_NumJoysticks(); ++i) {
+      if (SDL_IsGameController(i)) {
+        gameControllers.push_back(SDL_GameControllerOpen(i));
+      }
+    }
+  };
+
+
+  enumerateGameControllers();
+
   const auto inputText = readInput(args);
   const auto windowTitle = determineTitle(args);
   const auto showYesNoButtons = args.count("yes_button");
@@ -206,11 +232,18 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
         ) {
           running = false;
         }
+
+        if (
+          event.type == SDL_CONTROLLERDEVICEADDED ||
+          event.type == SDL_CONTROLLERDEVICEREMOVED)
+        {
+          enumerateGameControllers();
+        }
     }
 
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(pWindow);
+    ImGui_ImplSDL2_NewFrame(pWindow, gameControllers);
     ImGui::NewFrame();
 
     // Draw the UI

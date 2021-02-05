@@ -47,6 +47,8 @@
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 
+#include <algorithm>
+
 // SDL
 #include <SDL.h>
 #include <SDL_syswm.h>
@@ -310,32 +312,50 @@ static void ImGui_ImplSDL2_UpdateGamepads(const std::vector<SDL_GameController*>
         return;
 
     // Update gamepad inputs
-    #define MAP_BUTTON(NAV_NO, BUTTON_NO)       { io.NavInputs[NAV_NO] = (SDL_GameControllerGetButton(game_controller, BUTTON_NO) != 0) ? 1.0f : 0.0f; }
-    #define MAP_ANALOG(NAV_NO, AXIS_NO, V0, V1) { float vn = (float)(SDL_GameControllerGetAxis(game_controller, AXIS_NO) - V0) / (float)(V1 - V0); if (vn > 1.0f) vn = 1.0f; if (vn > 0.0f && io.NavInputs[NAV_NO] < vn) io.NavInputs[NAV_NO] = vn; }
-
+    //
     for (const auto game_controller : game_controllers)
     {
-      const int thumb_dead_zone = 8000;           // SDL_gamecontroller.h suggests using this value.
-      MAP_BUTTON(ImGuiNavInput_Activate,      SDL_CONTROLLER_BUTTON_A);               // Cross / A
-      MAP_BUTTON(ImGuiNavInput_Cancel,        SDL_CONTROLLER_BUTTON_B);               // Circle / B
-      MAP_BUTTON(ImGuiNavInput_Menu,          SDL_CONTROLLER_BUTTON_X);               // Square / X
-      MAP_BUTTON(ImGuiNavInput_Input,         SDL_CONTROLLER_BUTTON_Y);               // Triangle / Y
-      MAP_BUTTON(ImGuiNavInput_DpadLeft,      SDL_CONTROLLER_BUTTON_DPAD_LEFT);       // D-Pad Left
-      MAP_BUTTON(ImGuiNavInput_DpadRight,     SDL_CONTROLLER_BUTTON_DPAD_RIGHT);      // D-Pad Right
-      MAP_BUTTON(ImGuiNavInput_DpadUp,        SDL_CONTROLLER_BUTTON_DPAD_UP);         // D-Pad Up
-      MAP_BUTTON(ImGuiNavInput_DpadDown,      SDL_CONTROLLER_BUTTON_DPAD_DOWN);       // D-Pad Down
-      MAP_BUTTON(ImGuiNavInput_FocusPrev,     SDL_CONTROLLER_BUTTON_LEFTSHOULDER);    // L1 / LB
-      MAP_BUTTON(ImGuiNavInput_FocusNext,     SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);   // R1 / RB
-      MAP_BUTTON(ImGuiNavInput_TweakSlow,     SDL_CONTROLLER_BUTTON_LEFTSHOULDER);    // L1 / LB
-      MAP_BUTTON(ImGuiNavInput_TweakFast,     SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);   // R1 / RB
-      MAP_ANALOG(ImGuiNavInput_LStickLeft,    SDL_CONTROLLER_AXIS_LEFTX, -thumb_dead_zone, -32768);
-      MAP_ANALOG(ImGuiNavInput_LStickRight,   SDL_CONTROLLER_AXIS_LEFTX, +thumb_dead_zone, +32767);
-      MAP_ANALOG(ImGuiNavInput_LStickUp,      SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32767);
-      MAP_ANALOG(ImGuiNavInput_LStickDown,    SDL_CONTROLLER_AXIS_LEFTY, +thumb_dead_zone, +32767);
-    }
+      auto mapButton = [&](const auto nav_no, const auto button_no)
+      {
+        const auto is_pressed =
+          SDL_GameControllerGetButton(game_controller, button_no) != 0;
+        const auto value = (is_pressed) ? 1.0f : 0.0f;
 
-    #undef MAP_BUTTON
-    #undef MAP_ANALOG
+        io.NavInputs[nav_no] = std::clamp(
+          io.NavInputs[nav_no] + value, 0.0f, 1.0f);
+      };
+
+      auto mapAnalog = [&](const auto nav_no, const auto axis_no, const auto v0, const auto v1)
+      {
+        float vn =
+          (float)(SDL_GameControllerGetAxis(game_controller, axis_no) - v0) /
+          (float)(v1 - v0);
+
+        if (vn > 1.0f) vn = 1.0f;
+        if (vn > 0.0f && io.NavInputs[nav_no] < vn)
+        {
+          io.NavInputs[nav_no] += vn;
+        }
+      };
+
+      const int thumb_dead_zone = 8000;           // SDL_gamecontroller.h suggests using this value.
+      mapButton(ImGuiNavInput_Activate,      SDL_CONTROLLER_BUTTON_A);               // Cross / A
+      mapButton(ImGuiNavInput_Cancel,        SDL_CONTROLLER_BUTTON_B);               // Circle / B
+      mapButton(ImGuiNavInput_Menu,          SDL_CONTROLLER_BUTTON_X);               // Square / X
+      mapButton(ImGuiNavInput_Input,         SDL_CONTROLLER_BUTTON_Y);               // Triangle / Y
+      mapButton(ImGuiNavInput_DpadLeft,      SDL_CONTROLLER_BUTTON_DPAD_LEFT);       // D-Pad Left
+      mapButton(ImGuiNavInput_DpadRight,     SDL_CONTROLLER_BUTTON_DPAD_RIGHT);      // D-Pad Right
+      mapButton(ImGuiNavInput_DpadUp,        SDL_CONTROLLER_BUTTON_DPAD_UP);         // D-Pad Up
+      mapButton(ImGuiNavInput_DpadDown,      SDL_CONTROLLER_BUTTON_DPAD_DOWN);       // D-Pad Down
+      mapButton(ImGuiNavInput_FocusPrev,     SDL_CONTROLLER_BUTTON_LEFTSHOULDER);    // L1 / LB
+      mapButton(ImGuiNavInput_FocusNext,     SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);   // R1 / RB
+      mapButton(ImGuiNavInput_TweakSlow,     SDL_CONTROLLER_BUTTON_LEFTSHOULDER);    // L1 / LB
+      mapButton(ImGuiNavInput_TweakFast,     SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);   // R1 / RB
+      mapAnalog(ImGuiNavInput_LStickLeft,    SDL_CONTROLLER_AXIS_LEFTX, -thumb_dead_zone, -32768);
+      mapAnalog(ImGuiNavInput_LStickRight,   SDL_CONTROLLER_AXIS_LEFTX, +thumb_dead_zone, +32767);
+      mapAnalog(ImGuiNavInput_LStickUp,      SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32767);
+      mapAnalog(ImGuiNavInput_LStickDown,    SDL_CONTROLLER_AXIS_LEFTY, +thumb_dead_zone, +32767);
+    }
 }
 
 void ImGui_ImplSDL2_NewFrame(SDL_Window* window, const std::vector<SDL_GameController*>& game_controllers)
