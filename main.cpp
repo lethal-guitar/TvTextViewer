@@ -360,9 +360,18 @@ int main(int argc, char** argv)
   ImGui_ImplSDL2_InitForOpenGL(pWindow, pGlContext);
   ImGui_ImplOpenGL3_Init(nullptr);
 
-  if (SDL_GameControllerAddMappingsFromFile("/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt") < 0)
+  if (const auto dbFilePath = SDL_getenv("SDL_GAMECONTROLLERCONFIG_FILE"))
   {
-    std::cerr << "gamecontrollerdb.txt not found!\n";
+    if (SDL_GameControllerAddMappingsFromFile(dbFilePath) == 0)
+    {
+      std::cout << "Game controller mappings loaded\n";
+    }
+    else
+    {
+      std::cerr
+        << "Could not load controller mappings from file '"
+        << dbFilePath << "'!\n";
+    }
   }
 
   // Main loop
