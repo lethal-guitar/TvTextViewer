@@ -236,7 +236,11 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       ImGui::SetNextWindowFocus();
     }
 
-    ImGui::BeginChild("#scroll_area", {0, maxTextHeight}, true);
+    ImGui::BeginChild(
+      "#scroll_area",
+      {0, maxTextHeight},
+      true,
+      ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::TextUnformatted(inputText.c_str());
     ImGui::EndChild();
 
