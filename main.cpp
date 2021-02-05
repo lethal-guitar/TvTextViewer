@@ -188,10 +188,6 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 
   auto& io = ImGui::GetIO();
 
-  if (SDL_GameControllerAddMappingsFromFile("/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt") < 0)
-  {
-    printf("gamecontrollerdb.txt not found!\n");
-  }
   auto exitCode = 0;
   auto running = true;
   while (running)
@@ -363,6 +359,11 @@ int main(int argc, char** argv)
   // Setup Platform/Renderer bindings
   ImGui_ImplSDL2_InitForOpenGL(pWindow, pGlContext);
   ImGui_ImplOpenGL3_Init(nullptr);
+
+  if (SDL_GameControllerAddMappingsFromFile("/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt") < 0)
+  {
+    std::cerr << "gamecontrollerdb.txt not found!\n";
+  }
 
   // Main loop
   const auto exitCode = run(pWindow, args);
