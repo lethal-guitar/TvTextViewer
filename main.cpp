@@ -182,16 +182,38 @@ std::string determineTitle(const cxxopts::ParseResult& args)
 
 int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 {
+  std::vector<SDL_GameController*> gameControllers;
+
+  auto clearGameControllers = [&]()
+  {
+    for (const auto pController : gameControllers)
+    {
+      SDL_GameControllerClose(pController);
+    }
+
+    gameControllers.clear();
+  };
+
+  auto enumerateGameControllers = [&]()
+  {
+    clearGameControllers();
+
+    for (std::uint8_t i = 0; i < SDL_NumJoysticks(); ++i) {
+      if (SDL_IsGameController(i)) {
+        gameControllers.push_back(SDL_GameControllerOpen(i));
+      }
+    }
+  };
+
+
+  enumerateGameControllers();
+
   const auto inputText = readInput(args);
   const auto windowTitle = determineTitle(args);
   const auto showYesNoButtons = args.count("yes_button");
 
   auto& io = ImGui::GetIO();
 
-  if (SDL_GameControllerAddMappingsFromFile("/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt") < 0)
-  {
-    printf("gamecontrollerdb.txt not found!\n");
-  }
   auto exitCode = 0;
   auto running = true;
   while (running)
@@ -210,11 +232,18 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
         ) {
           running = false;
         }
+
+        if (
+          event.type == SDL_CONTROLLERDEVICEADDED ||
+          event.type == SDL_CONTROLLERDEVICEREMOVED)
+        {
+          enumerateGameControllers();
+        }
     }
 
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(pWindow);
+    ImGui_ImplSDL2_NewFrame(pWindow, gameControllers);
     ImGui::NewFrame();
 
     // Draw the UI
@@ -240,7 +269,11 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       ImGui::SetNextWindowFocus();
     }
 
-    ImGui::BeginChild("#scroll_area", {0, maxTextHeight}, true);
+    ImGui::BeginChild(
+      "#scroll_area",
+      {0, maxTextHeight},
+      true,
+      ImGuiWindowFlags_HorizontalScrollbar);
     ImGui::TextUnformatted(inputText.c_str());
     ImGui::EndChild();
 
@@ -363,6 +396,20 @@ int main(int argc, char** argv)
   // Setup Platform/Renderer bindings
   ImGui_ImplSDL2_InitForOpenGL(pWindow, pGlContext);
   ImGui_ImplOpenGL3_Init(nullptr);
+
+  if (const auto dbFilePath = SDL_getenv("SDL_GAMECONTROLLERCONFIG_FILE"))
+  {
+    if (SDL_GameControllerAddMappingsFromFile(dbFilePath) == 0)
+    {
+      std::cout << "Game controller mappings loaded\n";
+    }
+    else
+    {
+      std::cerr
+        << "Could not load controller mappings from file '"
+        << dbFilePath << "'!\n";
+    }
+  }
 
   // Main loop
   const auto exitCode = run(pWindow, args);
