@@ -399,7 +399,7 @@ int main(int argc, char** argv)
 
   if (const auto dbFilePath = SDL_getenv("SDL_GAMECONTROLLERCONFIG_FILE"))
   {
-    if (SDL_GameControllerAddMappingsFromFile(dbFilePath) == 0)
+    if (SDL_GameControllerAddMappingsFromFile(dbFilePath) >= 0)
     {
       std::cout << "Game controller mappings loaded\n";
     }
@@ -407,7 +407,7 @@ int main(int argc, char** argv)
     {
       std::cerr
         << "Could not load controller mappings from file '"
-        << dbFilePath << "'!\n";
+        << dbFilePath << "': " << SDL_GetError() << '\n';
     }
   }
 
