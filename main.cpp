@@ -221,24 +221,24 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        ImGui_ImplSDL2_ProcessEvent(&event);
-        if (
-          event.type == SDL_QUIT ||
-          (event.type == SDL_CONTROLLERBUTTONDOWN &&
-           event.cbutton.button == SDL_CONTROLLER_BUTTON_START) ||
-          (event.type == SDL_WINDOWEVENT &&
-           event.window.event == SDL_WINDOWEVENT_CLOSE &&
-           event.window.windowID == SDL_GetWindowID(pWindow))
-        ) {
-          running = false;
-        }
+      ImGui_ImplSDL2_ProcessEvent(&event);
+      if (
+        event.type == SDL_QUIT ||
+        (event.type == SDL_CONTROLLERBUTTONDOWN &&
+         event.cbutton.button == SDL_CONTROLLER_BUTTON_START) ||
+        (event.type == SDL_WINDOWEVENT &&
+         event.window.event == SDL_WINDOWEVENT_CLOSE &&
+         event.window.windowID == SDL_GetWindowID(pWindow))
+      ) {
+        running = false;
+      }
 
-        if (
-          event.type == SDL_CONTROLLERDEVICEADDED ||
-          event.type == SDL_CONTROLLERDEVICEREMOVED)
-        {
-          enumerateGameControllers();
-        }
+      if (
+        event.type == SDL_CONTROLLERDEVICEADDED ||
+        event.type == SDL_CONTROLLERDEVICEREMOVED)
+      {
+        enumerateGameControllers();
+      }
     }
 
     // Start the Dear ImGui frame
