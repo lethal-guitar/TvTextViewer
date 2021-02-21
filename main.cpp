@@ -254,8 +254,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       windowTitle.c_str(),
       &running,
       ImGuiWindowFlags_NoCollapse |
-      ImGuiWindowFlags_NoResize |
-      ImGuiWindowFlags_NoSavedSettings);
+      ImGuiWindowFlags_NoResize);
 
     const auto buttonSpaceRequired =
       ImGui::CalcTextSize("Close", nullptr, true).y +
@@ -377,6 +376,9 @@ int main(int argc, char** argv)
   auto& io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+  // Disable creation of imgui.ini
+  io.IniFilename = nullptr;
 
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
