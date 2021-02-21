@@ -206,8 +206,6 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   };
 
 
-  enumerateGameControllers();
-
   const auto inputText = readInput(args);
   const auto windowTitle = determineTitle(args);
   const auto showYesNoButtons = args.count("yes_button");
