@@ -19,6 +19,8 @@
   * SOFTWARE.
   */
 
+#include "view.hpp"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_impl_sdl.h"
@@ -210,7 +212,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   const auto windowTitle = determineTitle(args);
   const auto showYesNoButtons = args.count("yes_button");
 
-  auto& io = ImGui::GetIO();
+  const auto& io = ImGui::GetIO();
 
   auto exitCode = 0;
   auto running = true;
@@ -245,73 +247,13 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui::NewFrame();
 
     // Draw the UI
-    const auto& windowSize = io.DisplaySize;
-    ImGui::SetNextWindowSize(windowSize);
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::Begin(
-      windowTitle.c_str(),
-      &running,
-      ImGuiWindowFlags_NoCollapse |
-      ImGuiWindowFlags_NoResize);
-
-    const auto buttonSpaceRequired =
-      ImGui::CalcTextSize("Close", nullptr, true).y +
-      ImGui::GetStyle().FramePadding.y * 2.0f;
-    const auto maxTextHeight = ImGui::GetContentRegionAvail().y -
-      ImGui::GetStyle().ItemSpacing.y -
-      buttonSpaceRequired;
-
-    if (ImGui::IsWindowAppearing() && !showYesNoButtons)
-    {
-      ImGui::SetNextWindowFocus();
-    }
-
-    ImGui::BeginChild(
-      "#scroll_area",
-      {0, maxTextHeight},
-      true,
-      ImGuiWindowFlags_HorizontalScrollbar);
-    ImGui::TextUnformatted(inputText.c_str());
-    ImGui::EndChild();
-
-    // Draw buttons
-    if (showYesNoButtons) {
-      const auto buttonWidth = windowSize.x / 3.0f;
-      ImGui::SetCursorPosX(
-        (windowSize.x - (buttonWidth * 2 + ImGui::GetStyle().ItemSpacing.x))
-        / 2.0f);
-
-      if (ImGui::Button("Yes", {buttonWidth, 0.0f}))
-      {
-        // return 21 if selected yes, this is for checking return code in bash scripts
-        exitCode = 21;
-        running = false;
-      }
-
-      ImGui::SameLine();
-
-      if (ImGui::Button("No", {buttonWidth, 0.0f}))
-      {
-        running = false;
-      }
-
-      // Auto-focus the yes button
-      if (ImGui::IsWindowAppearing())
-      {
-        ImGui::SetFocusID(ImGui::GetID("Yes"), ImGui::GetCurrentWindow());
-        ImGui::GetCurrentContext()->NavDisableHighlight = false;
-        ImGui::GetCurrentContext()->NavDisableMouseHover = true;
-      }
-    } else {
-      const auto buttonWidth = windowSize.x / 3.0f;
-      ImGui::SetCursorPosX((windowSize.x - buttonWidth) / 2.0f);
-      if (ImGui::Button("Close", {buttonWidth, 0.0f}))
-      {
-        running = false;
-      }
-    }
-
-    ImGui::End();
+    std::tie(running, exitCode) = drawView(
+      io.DisplaySize,
+      windowTitle,
+      inputText,
+      showYesNoButtons,
+      running,
+      exitCode);
 
     // Rendering
     ImGui::Render();
