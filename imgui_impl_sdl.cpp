@@ -341,7 +341,8 @@ static void ImGui_ImplSDL2_UpdateGamepads(const std::vector<SDL_GameController*>
       const int thumb_dead_zone = 8000;           // SDL_gamecontroller.h suggests using this value.
       mapButton(ImGuiNavInput_Activate,      SDL_CONTROLLER_BUTTON_A);               // Cross / A
       mapButton(ImGuiNavInput_Cancel,        SDL_CONTROLLER_BUTTON_B);               // Circle / B
-      mapButton(ImGuiNavInput_Menu,          SDL_CONTROLLER_BUTTON_X);               // Square / X
+      // TvTextViewer: Disable the window switch interaction as it only confuses users.
+      //mapButton(ImGuiNavInput_Menu,          SDL_CONTROLLER_BUTTON_X);               // Square / X
       mapButton(ImGuiNavInput_Input,         SDL_CONTROLLER_BUTTON_Y);               // Triangle / Y
       mapButton(ImGuiNavInput_DpadLeft,      SDL_CONTROLLER_BUTTON_DPAD_LEFT);       // D-Pad Left
       mapButton(ImGuiNavInput_DpadRight,     SDL_CONTROLLER_BUTTON_DPAD_RIGHT);      // D-Pad Right
