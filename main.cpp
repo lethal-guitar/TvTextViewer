@@ -232,7 +232,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
          event.window.event == SDL_WINDOWEVENT_CLOSE &&
          event.window.windowID == SDL_GetWindowID(pWindow))
       ) {
-        exitCode = 0;
+        return 0;
       }
 
       if (
