@@ -55,6 +55,7 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
         ("t,title", "window title (filename by default)", cxxopts::value<std::string>())
         ("y,yes_button", "shows a yes button with different exit code")
         ("e,error_display", "format as error, background will be red")
+        ("w,wrap_lines", "wrap long lines of text. WARNING: could be slow for large files!")
         ("h,help", "show help")
       ;
 
@@ -211,7 +212,8 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   auto view = View{
     determineTitle(args),
     readInput(args),
-    args.count("yes_button") > 0};
+    args.count("yes_button") > 0,
+    args.count("wrap_lines") > 0};
 
   const auto& io = ImGui::GetIO();
 

@@ -25,6 +25,8 @@
 
 #include <string>
 #include <optional>
+#include <variant>
+#include <vector>
 
 
 class View {
@@ -32,13 +34,14 @@ public:
   View(
     std::string windowTitle,
     std::string inputText,
-    bool showYesNoButtons);
+    bool showYesNoButtons,
+    bool wrapLines);
 
   std::optional<int> draw(const ImVec2& windowSize);
 
 private:
   std::string mTitle;
-  std::string mText;
+  std::variant<std::string, std::vector<std::string>> mText;
   std::optional<int> mExitCode;
   bool mShowYesNoButtons;
 };

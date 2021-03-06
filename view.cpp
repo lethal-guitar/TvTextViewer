@@ -23,15 +23,29 @@
 
 #include "imgui_internal.h"
 
+#include <sstream>
+
 
 View::View(
   std::string windowTitle,
   std::string inputText,
-  const bool showYesNoButtons)
+  const bool showYesNoButtons,
+  const bool wrapLines)
   : mTitle(std::move(windowTitle))
   , mText(std::move(inputText))
   , mShowYesNoButtons(showYesNoButtons)
 {
+  if (wrapLines)
+  {
+    std::stringstream stream{std::get<std::string>(mText)};
+    std::vector<std::string> lines;
+    for (std::string line; std::getline(stream, line); )
+    {
+      lines.push_back(line);
+    }
+
+    mText = std::move(lines);
+  }
 }
 
 
@@ -64,7 +78,19 @@ std::optional<int> View::draw(const ImVec2& windowSize)
     {0, maxTextHeight},
     true,
     ImGuiWindowFlags_HorizontalScrollbar);
-  ImGui::TextUnformatted(mText.c_str());
+
+  if (const auto pText = std::get_if<std::string>(&mText))
+  {
+    ImGui::TextUnformatted(pText->c_str());
+  }
+  else if (const auto pLines = std::get_if<std::vector<std::string>>(&mText))
+  {
+    for (const auto& line : *pLines)
+    {
+      ImGui::TextWrapped(line.c_str());
+    }
+  }
+
   ImGui::EndChild();
 
   // Draw buttons
