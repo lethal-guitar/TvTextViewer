@@ -24,18 +24,25 @@
 #include "imgui_internal.h"
 
 
-std::tuple<bool, int> drawView(
-  const ImVec2& windowSize,
-  const std::string& windowTitle,
-  const std::string& inputText,
-  const bool showYesNoButtons,
-  bool running,
-  int exitCode)
+View::View(
+  std::string windowTitle,
+  std::string inputText,
+  const bool showYesNoButtons)
+  : mTitle(std::move(windowTitle))
+  , mText(std::move(inputText))
+  , mShowYesNoButtons(showYesNoButtons)
+{
+}
+
+
+std::optional<int> View::draw(const ImVec2& windowSize)
 {
   ImGui::SetNextWindowSize(windowSize);
   ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+  auto running = true;
   ImGui::Begin(
-    windowTitle.c_str(),
+    mTitle.c_str(),
     &running,
     ImGuiWindowFlags_NoCollapse |
     ImGuiWindowFlags_NoResize);
@@ -47,7 +54,7 @@ std::tuple<bool, int> drawView(
     ImGui::GetStyle().ItemSpacing.y -
     buttonSpaceRequired;
 
-  if (ImGui::IsWindowAppearing() && !showYesNoButtons)
+  if (ImGui::IsWindowAppearing() && !mShowYesNoButtons)
   {
     ImGui::SetNextWindowFocus();
   }
@@ -57,11 +64,11 @@ std::tuple<bool, int> drawView(
     {0, maxTextHeight},
     true,
     ImGuiWindowFlags_HorizontalScrollbar);
-  ImGui::TextUnformatted(inputText.c_str());
+  ImGui::TextUnformatted(mText.c_str());
   ImGui::EndChild();
 
   // Draw buttons
-  if (showYesNoButtons) {
+  if (mShowYesNoButtons) {
     const auto buttonWidth = windowSize.x / 3.0f;
     ImGui::SetCursorPosX(
       (windowSize.x - (buttonWidth * 2 + ImGui::GetStyle().ItemSpacing.x))
@@ -70,7 +77,7 @@ std::tuple<bool, int> drawView(
     if (ImGui::Button("Yes", {buttonWidth, 0.0f}))
     {
       // return 21 if selected yes, this is for checking return code in bash scripts
-      exitCode = 21;
+      mExitCode = 21;
       running = false;
     }
 
@@ -99,5 +106,10 @@ std::tuple<bool, int> drawView(
 
   ImGui::End();
 
-  return {running, exitCode};
+  if (!running && !mExitCode)
+  {
+    mExitCode = 0;
+  }
+
+  return mExitCode;
 }

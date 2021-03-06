@@ -24,13 +24,21 @@
 #include "imgui.h"
 
 #include <string>
-#include <tuple>
+#include <optional>
 
 
-[[nodiscard]] std::tuple<bool, int> drawView(
-  const ImVec2& windowSize,
-  const std::string& windowTitle,
-  const std::string& inputText,
-  const bool showYesNoButtons,
-  bool running,
-  int exitCode);
+class View {
+public:
+  View(
+    std::string windowTitle,
+    std::string inputText,
+    bool showYesNoButtons);
+
+  std::optional<int> draw(const ImVec2& windowSize);
+
+private:
+  std::string mTitle;
+  std::string mText;
+  std::optional<int> mExitCode;
+  bool mShowYesNoButtons;
+};

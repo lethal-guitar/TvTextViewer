@@ -208,15 +208,15 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   };
 
 
-  const auto inputText = readInput(args);
-  const auto windowTitle = determineTitle(args);
-  const auto showYesNoButtons = args.count("yes_button");
+  auto view = View{
+    determineTitle(args),
+    readInput(args),
+    args.count("yes_button") > 0};
 
   const auto& io = ImGui::GetIO();
 
-  auto exitCode = 0;
-  auto running = true;
-  while (running)
+  std::optional<int> exitCode;
+  while (!exitCode)
   {
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -230,7 +230,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
          event.window.event == SDL_WINDOWEVENT_CLOSE &&
          event.window.windowID == SDL_GetWindowID(pWindow))
       ) {
-        running = false;
+        exitCode = 0;
       }
 
       if (
@@ -247,13 +247,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     ImGui::NewFrame();
 
     // Draw the UI
-    std::tie(running, exitCode) = drawView(
-      io.DisplaySize,
-      windowTitle,
-      inputText,
-      showYesNoButtons,
-      running,
-      exitCode);
+    exitCode = view.draw(io.DisplaySize);
 
     // Rendering
     ImGui::Render();
@@ -264,7 +258,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     SDL_GL_SwapWindow(pWindow);
   }
 
-  return exitCode;
+  return *exitCode;
 }
 
 }
