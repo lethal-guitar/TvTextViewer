@@ -276,6 +276,21 @@ int main(int argc, char** argv)
 
   const auto& args = *oArgs;
 
+
+  if (const auto dbFilePath = SDL_getenv("SDL_GAMECONTROLLERCONFIG_FILE"))
+  {
+    if (SDL_GameControllerAddMappingsFromFile(dbFilePath) >= 0)
+    {
+      std::cout << "Game controller mappings loaded\n";
+    }
+    else
+    {
+      std::cerr
+        << "Could not load controller mappings from file '"
+        << dbFilePath << "': " << SDL_GetError() << '\n';
+    }
+  }
+
   // Setup SDL
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
   {
@@ -334,20 +349,6 @@ int main(int argc, char** argv)
   // Setup Platform/Renderer bindings
   ImGui_ImplSDL2_InitForOpenGL(pWindow, pGlContext);
   ImGui_ImplOpenGL3_Init(nullptr);
-
-  if (const auto dbFilePath = SDL_getenv("SDL_GAMECONTROLLERCONFIG_FILE"))
-  {
-    if (SDL_GameControllerAddMappingsFromFile(dbFilePath) >= 0)
-    {
-      std::cout << "Game controller mappings loaded\n";
-    }
-    else
-    {
-      std::cerr
-        << "Could not load controller mappings from file '"
-        << dbFilePath << "': " << SDL_GetError() << '\n';
-    }
-  }
 
   // Main loop
   const auto exitCode = run(pWindow, args);
