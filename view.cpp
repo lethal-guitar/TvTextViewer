@@ -23,19 +23,57 @@
 
 #include "imgui_internal.h"
 
+#include <poll.h>
+#include <unistd.h>
+
 #include <sstream>
+#include <stdexcept>
 
 
 View::View(
   std::string windowTitle,
-  std::string inputText,
+  std::string inputTextOrScriptFile,
   const bool showYesNoButtons,
-  const bool wrapLines)
+  const bool wrapLines,
+  const bool inputTextIsScriptFile)
   : mTitle(std::move(windowTitle))
-  , mText(std::move(inputText))
+  , mText([&]() -> decltype(mText) {
+      if (inputTextIsScriptFile)
+      {
+        if (wrapLines)
+        {
+          return std::vector<std::string>{};
+        }
+        else
+        {
+          return "";
+        }
+      }
+
+      return std::move(inputTextOrScriptFile);
+    }())
+  , mpScriptPipe(nullptr)
+  , mScriptPipeFd(-1)
   , mShowYesNoButtons(showYesNoButtons)
 {
-  if (wrapLines)
+  // We are executing a script instead of showing some text.
+  // Start executing it, and grab the file descriptor for polling.
+  if (inputTextIsScriptFile)
+  {
+    mpScriptPipe = popen(inputTextOrScriptFile.c_str(), "r");
+    if (!mpScriptPipe)
+    {
+      throw std::runtime_error("Failed to execute script");
+    }
+
+    mScriptPipeFd = fileno(mpScriptPipe);
+    if (mScriptPipeFd == -1)
+    {
+      pclose(mpScriptPipe);
+      throw std::runtime_error("Failed to execute script");
+    }
+  }
+  else if (wrapLines)
   {
     std::stringstream stream{std::get<std::string>(mText)};
     std::vector<std::string> lines;
@@ -46,6 +84,12 @@ View::View(
 
     mText = std::move(lines);
   }
+}
+
+
+View::~View()
+{
+  closeScriptPipe();
 }
 
 
@@ -79,6 +123,14 @@ std::optional<int> View::draw(const ImVec2& windowSize)
     true,
     ImGuiWindowFlags_HorizontalScrollbar);
 
+  // We are executing a script instead of showing some text.
+  // Fetch output from the script and append it to our text buffer.
+  if (mpScriptPipe)
+  {
+    fetchScriptOutput();
+  }
+
+  // Draw the text buffer.
   if (const auto pText = std::get_if<std::string>(&mText))
   {
     ImGui::TextUnformatted(pText->c_str());
@@ -138,4 +190,79 @@ std::optional<int> View::draw(const ImVec2& windowSize)
   }
 
   return mExitCode;
+}
+
+
+void View::fetchScriptOutput()
+{
+  // Check if there is new data available from the script's output
+  struct pollfd pollData{mScriptPipeFd, POLLIN, 0};
+  const auto result = poll(&pollData, 1, 0);
+
+  if (result > 0)
+  {
+    if (pollData.revents & POLLIN)
+    {
+      // Data is available.
+      char bytes[1024];
+      const auto bytesRead = read(mScriptPipeFd, bytes, sizeof(bytes));
+      if (bytesRead == -1)
+      {
+        // Error reading the pipe
+        throw std::runtime_error("Error read()-ing script fd");
+      }
+
+      if (bytesRead > 0)
+      {
+        // We read some output bytes, append them to our message,
+        // taking word-wrapping into account as needed.
+        if (const auto pText = std::get_if<std::string>(&mText))
+        {
+          // Word-wrapping is disabled, simply append the bytes we read to our
+          // string.
+          pText->insert(pText->end(), bytes, bytes + bytesRead);
+        }
+        else if (const auto pLines = std::get_if<std::vector<std::string>>(&mText))
+        {
+          // Word-wrapping is enabled, look for linebreaks and move on to
+          // the next line in the list of lines when we encouter one.
+          if (pLines->empty())
+          {
+            pLines->emplace_back(bytes, bytes + bytesRead);
+          }
+          else
+          {
+            for (auto pChar = bytes; pChar != bytes + bytesRead; ++pChar)
+            {
+              pLines->back().push_back(*pChar);
+
+              if (*pChar == '\n')
+              {
+                pLines->emplace_back();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (pollData.revents & POLLHUP || pollData.revents & POLLERR)
+    {
+      // The script is done, or an error occured - close the pipe
+      closeScriptPipe();
+    }
+  }
+  else if (result < 0)
+  {
+    // Error polling the pipe
+    throw std::runtime_error("Error poll()-ing script fd");
+  }
+}
+
+
+void View::closeScriptPipe()
+{
+  pclose(mpScriptPipe);
+  mpScriptPipe = nullptr;
+  mScriptPipeFd = -1;
 }

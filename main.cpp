@@ -50,6 +50,7 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
       .show_positional_help()
       .add_options()
         ("input_file", "text file to view", cxxopts::value<std::string>())
+        ("s,script_file", "script outpout to view", cxxopts::value<std::string>())
         ("m,message", "text to show instead of viewing a file", cxxopts::value<std::string>())
         ("f,font_size", "font size in pixels", cxxopts::value<int>())
         ("t,title", "window title (filename by default)", cxxopts::value<std::string>())
@@ -71,7 +72,7 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
         std::exit(0);
       }
 
-      if (!result.count("input_file") && !result.count("message"))
+      if (!result.count("input_file") && !result.count("message") && !result.count("script_file"))
       {
         std::cerr << "Error: No input given\n\n";
         std::cerr << options.help({""}) << '\n';
@@ -135,7 +136,7 @@ std::string replaceEscapeSequences(const std::string& original)
 }
 
 
-std::string readInput(const cxxopts::ParseResult& args)
+std::string readInputOrScriptName(const cxxopts::ParseResult& args)
 {
   if (args.count("input_file"))
   {
@@ -154,6 +155,10 @@ std::string readInput(const cxxopts::ParseResult& args)
     file.read(&inputText[0], fileSize);
 
     return inputText;
+  }
+  else if (args.count("script_file"))
+  {
+    return args["script_file"].as<std::string>();
   }
   else
   {
@@ -211,9 +216,10 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 
   auto view = View{
     determineTitle(args),
-    readInput(args),
+    readInputOrScriptName(args),
     args.count("yes_button") > 0,
-    args.count("wrap_lines") > 0};
+    args.count("wrap_lines") > 0,
+    args.count("script_file") > 0};
 
   const auto& io = ImGui::GetIO();
 

@@ -23,6 +23,7 @@
 
 #include "imgui.h"
 
+#include <cstdio>
 #include <string>
 #include <optional>
 #include <variant>
@@ -33,15 +34,23 @@ class View {
 public:
   View(
     std::string windowTitle,
-    std::string inputText,
+    std::string inputTextOrScriptFile,
     bool showYesNoButtons,
-    bool wrapLines);
+    bool wrapLines,
+    bool inpuTextIsScriptFile);
+  ~View();
 
   std::optional<int> draw(const ImVec2& windowSize);
 
 private:
+  void fetchScriptOutput();
+  void closeScriptPipe();
+
   std::string mTitle;
   std::variant<std::string, std::vector<std::string>> mText;
+  FILE* mpScriptPipe;
+  int mScriptPipeFd;
+
   std::optional<int> mExitCode;
   bool mShowYesNoButtons;
 };
