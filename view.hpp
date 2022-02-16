@@ -43,7 +43,7 @@ public:
   std::optional<int> draw(const ImVec2& windowSize);
 
 private:
-  void fetchScriptOutput();
+  bool fetchScriptOutput();
   void closeScriptPipe();
 
   std::string mTitle;
