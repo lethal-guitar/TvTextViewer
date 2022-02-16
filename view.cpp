@@ -60,7 +60,7 @@ View::View(
   // Start executing it, and grab the file descriptor for polling.
   if (inputTextIsScriptFile)
   {
-    mpScriptPipe = popen(inputTextOrScriptFile.c_str(), "r");
+    mpScriptPipe = popen((inputTextOrScriptFile + " 2>&1 ").c_str(), "r");
     if (!mpScriptPipe)
     {
       throw std::runtime_error("Failed to execute script");
@@ -98,6 +98,7 @@ std::optional<int> View::draw(const ImVec2& windowSize)
   ImGui::SetNextWindowSize(windowSize);
   ImGui::SetNextWindowPos(ImVec2(0, 0));
 
+  bool scroll = false;
   auto running = true;
   ImGui::Begin(
     mTitle.c_str(),
@@ -127,7 +128,7 @@ std::optional<int> View::draw(const ImVec2& windowSize)
   // Fetch output from the script and append it to our text buffer.
   if (mpScriptPipe)
   {
-    fetchScriptOutput();
+    scroll = fetchScriptOutput();
   }
 
   // Draw the text buffer.
@@ -141,6 +142,11 @@ std::optional<int> View::draw(const ImVec2& windowSize)
     {
       ImGui::TextWrapped(line.c_str());
     }
+  }
+
+  if (scroll)
+  {
+    ImGui::SetScrollHere(1.0);
   }
 
   ImGui::EndChild();
@@ -193,8 +199,10 @@ std::optional<int> View::draw(const ImVec2& windowSize)
 }
 
 
-void View::fetchScriptOutput()
+bool View::fetchScriptOutput()
 {
+  bool gotNewData = false;
+
   // Check if there is new data available from the script's output
   struct pollfd pollData{mScriptPipeFd, POLLIN, 0};
   const auto result = poll(&pollData, 1, 0);
@@ -214,6 +222,8 @@ void View::fetchScriptOutput()
 
       if (bytesRead > 0)
       {
+        gotNewData = true;
+
         // We read some output bytes, append them to our message,
         // taking word-wrapping into account as needed.
         if (const auto pText = std::get_if<std::string>(&mText))
@@ -257,12 +267,17 @@ void View::fetchScriptOutput()
     // Error polling the pipe
     throw std::runtime_error("Error poll()-ing script fd");
   }
+
+  return gotNewData;
 }
 
 
 void View::closeScriptPipe()
 {
-  pclose(mpScriptPipe);
-  mpScriptPipe = nullptr;
-  mScriptPipeFd = -1;
+    if (mpScriptPipe)
+    {
+        pclose(mpScriptPipe);
+        mpScriptPipe = nullptr;
+        mScriptPipeFd = -1;
+    }
 }
