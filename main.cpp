@@ -233,7 +233,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       if (
         event.type == SDL_QUIT ||
         (event.type == SDL_CONTROLLERBUTTONDOWN &&
-         event.cbutton.button == SDL_CONTROLLER_BUTTON_START) ||
+         (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE || event.cbutton.button == SDL_CONTROLLER_BUTTON_BACK)) ||
         (event.type == SDL_WINDOWEVENT &&
          event.window.event == SDL_WINDOWEVENT_CLOSE &&
          event.window.windowID == SDL_GetWindowID(pWindow))
