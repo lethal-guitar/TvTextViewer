@@ -38,6 +38,10 @@ View::View(
   const bool inputTextIsScriptFile)
   : mTitle(std::move(windowTitle))
   , mText([&]() -> decltype(mText) {
+      // When executing a script, mText is gradually filled up
+      // with the script's output. We need to initialize it
+      // to either an empty string, or an empty list of lines
+      // depending on if word wrapping is enabled or not.
       if (inputTextIsScriptFile)
       {
         if (wrapLines)
@@ -106,6 +110,12 @@ std::optional<int> View::draw(const ImVec2& windowSize)
     ImGuiWindowFlags_NoCollapse |
     ImGuiWindowFlags_NoResize);
 
+  // Calculate the height in pixels we can use for the text window.
+  // This is the entire available space (mGui::GetContentRegionAvail)
+  // minus the space needed for the button(s).
+  // To figure out the latter, we take the height of some example text
+  // and add appropriate padding/spacing to mimick how ImGui lays out
+  // the button.
   const auto buttonSpaceRequired =
     ImGui::CalcTextSize("Close", nullptr, true).y +
     ImGui::GetStyle().FramePadding.y * 2.0f;
@@ -113,11 +123,17 @@ std::optional<int> View::draw(const ImVec2& windowSize)
     ImGui::GetStyle().ItemSpacing.y -
     buttonSpaceRequired;
 
+  // On the first frame (indicated by IsWindowAppearing), focus
+  // the text so that the user can immediately scroll it without
+  // needing to navigate to it from the buttons.
+  // If we are showing yes/no buttons, however, we want the buttons
+  // to be focused initially so we don't do this in that case.
   if (ImGui::IsWindowAppearing() && !mShowYesNoButtons)
   {
     ImGui::SetNextWindowFocus();
   }
 
+  // Draw the scrollable region containing the text
   ImGui::BeginChild(
     "#scroll_area",
     {0, maxTextHeight},
@@ -144,6 +160,7 @@ std::optional<int> View::draw(const ImVec2& windowSize)
     }
   }
 
+  // Handle scrolling automatically as we receive output from the script
   if (scroll)
   {
     ImGui::SetScrollHere(1.0);
@@ -151,8 +168,11 @@ std::optional<int> View::draw(const ImVec2& windowSize)
 
   ImGui::EndChild();
 
-  // Draw buttons
+  // Draw the button(s)
   if (mShowYesNoButtons) {
+    // For the yes/no button case, we need to layout the buttons so that
+    // both together are centered horizontally, and have both buttons be
+    // equally wide.
     const auto buttonWidth = windowSize.x / 3.0f;
     ImGui::SetCursorPosX(
       (windowSize.x - (buttonWidth * 2 + ImGui::GetStyle().ItemSpacing.x))
@@ -172,7 +192,7 @@ std::optional<int> View::draw(const ImVec2& windowSize)
       running = false;
     }
 
-    // Auto-focus the yes button
+    // Auto-focus the yes button on the first frame
     if (ImGui::IsWindowAppearing())
     {
       ImGui::SetFocusID(ImGui::GetID("Yes"), ImGui::GetCurrentWindow());
@@ -180,6 +200,7 @@ std::optional<int> View::draw(const ImVec2& windowSize)
       ImGui::GetCurrentContext()->NavDisableMouseHover = true;
     }
   } else {
+    // Draw a single button centered horizontally
     const auto buttonWidth = windowSize.x / 3.0f;
     ImGui::SetCursorPosX((windowSize.x - buttonWidth) / 2.0f);
     if (ImGui::Button("Close", {buttonWidth, 0.0f}))
@@ -190,6 +211,9 @@ std::optional<int> View::draw(const ImVec2& windowSize)
 
   ImGui::End();
 
+  // If running is false but no exit code was set, we set a default of 0.
+  // Setting the exit code is what makes the main loop (in main.cpp)
+  // terminate.
   if (!running && !mExitCode)
   {
     mExitCode = 0;
@@ -274,10 +298,10 @@ bool View::fetchScriptOutput()
 
 void View::closeScriptPipe()
 {
-    if (mpScriptPipe)
-    {
-        pclose(mpScriptPipe);
-        mpScriptPipe = nullptr;
-        mScriptPipeFd = -1;
-    }
+  if (mpScriptPipe)
+  {
+    pclose(mpScriptPipe);
+    mpScriptPipe = nullptr;
+    mScriptPipeFd = -1;
+  }
 }
