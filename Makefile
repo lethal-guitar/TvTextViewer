@@ -9,9 +9,20 @@ OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 
 CXXFLAGS = -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(CXXOPTS_DIR)/include
 CXXFLAGS += -std=c++17 -O2 -Wall -Wformat
-CXXFLAGS += -DIMGUI_IMPL_OPENGL_ES2
 CXXFLAGS += `sdl2-config --cflags`
-LIBS = -lGLESv2 -ldl `sdl2-config --libs`
+LIBS = -ldl `sdl2-config --libs`
+
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S), Linux) #LINUX
+	CXXFLAGS += -DIMGUI_IMPL_OPENGL_ES2
+	LIBS += -lGLESv2
+endif
+
+
+ifeq ($(UNAME_S), Darwin) #APPLE
+	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
+endif
 
 ##---------------------------------------------------------------------
 ## BUILD RULES

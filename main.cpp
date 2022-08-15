@@ -27,8 +27,15 @@
 #include "imgui_impl_opengl3.h"
 
 #include <cxxopts.hpp>
-#include <GLES2/gl2.h>
+
+#if defined(IMGUI_IMPL_OPENGL_ES2)
+#include <SDL_opengles2.h>
+#else
+#include <SDL_opengl.h>
+#endif
+
 #include <SDL.h>
+#include <SDL_opengl.h>
 
 #include <cstdlib>
 #include <iostream>
@@ -171,7 +178,7 @@ std::string readInputOrScriptName(const cxxopts::ParseResult& args)
     // memory and return its content
     const auto& inputFilename = args["input_file"].as<std::string>();
     std::ifstream file(inputFilename, std::ios::ate);
-    
+
     // If there was an error (file doesn't exist, we don't have permission,
     // other error etc.), return an empty string
     if (!file.is_open())
@@ -227,7 +234,7 @@ std::string determineTitle(const cxxopts::ParseResult& args)
 int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
 {
   // Data structures and helper functions for dealing with controllers
-  
+
   // List of all currently open controllers
   std::vector<SDL_GameController*> gameControllers;
 
@@ -319,7 +326,7 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-   
+
     SDL_GL_SwapWindow(pWindow);
   }
 
@@ -368,9 +375,17 @@ int main(int argc, char** argv)
   }
 
   // Setup window and OpenGL
+#ifdef __APPLE__
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+#else
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
+
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
@@ -405,11 +420,11 @@ int main(int argc, char** argv)
 
   // Change the background to red if the --error_display option is given
   if (args.count("error_display")) {
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(ImColor(94, 11, 22, 255))); // Set window background to red
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(ImColor(94, 11, 22, 255)));
     ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(ImColor(94, 11, 22, 255)));
   }
 
-  // Apply the requested font size 
+  // Apply the requested font size, if any
   if (args.count("font_size"))
   {
     ImFontConfig config;
