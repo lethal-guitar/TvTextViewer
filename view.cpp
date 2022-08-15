@@ -156,14 +156,14 @@ std::optional<int> View::draw(const ImVec2& windowSize)
   {
     for (const auto& line : *pLines)
     {
-      ImGui::TextWrapped(line.c_str());
+      ImGui::TextWrapped("%s", line.c_str());
     }
   }
 
   // Handle scrolling automatically as we receive output from the script
   if (scroll)
   {
-    ImGui::SetScrollHere(1.0);
+    ImGui::SetScrollHereY(1.0);
   }
 
   ImGui::EndChild();
