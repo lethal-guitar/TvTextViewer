@@ -30,41 +30,66 @@
 #include <stdexcept>
 
 
-View::View(
-  std::string windowTitle,
-  std::string inputTextOrScriptFile,
-  const bool showYesNoButtons,
-  const bool wrapLines,
-  const bool inputTextIsScriptFile)
-  : mTitle(std::move(windowTitle))
-  , mText([&]() -> decltype(mText) {
-      // When executing a script, mText is gradually filled up
-      // with the script's output. We need to initialize it
-      // to either an empty string, or an empty list of lines
-      // depending on if word wrapping is enabled or not.
-      if (inputTextIsScriptFile)
+std::variant<std::string, std::vector<std::string>> initialText(
+  ViewInput& inputData, const bool wrapLines)
+{
+  // When executing a script, mText is gradually filled up
+  // with the script's output. We need to initialize it
+  // to either an empty string, or an empty list of lines
+  // depending on if word wrapping is enabled or not.
+  if (std::holds_alternative<ScriptFile>(inputData))
+  {
+    if (wrapLines)
+    {
+      return std::vector<std::string>{};
+    }
+    else
+    {
+      return "";
+    }
+  }
+  else if (auto pText = std::get_if<std::string>(&inputData))
+  {
+    if (wrapLines)
+    {
+      std::stringstream stream{std::move(*pText)};
+      std::vector<std::string> lines;
+      for (std::string line; std::getline(stream, line); )
       {
-        if (wrapLines)
-        {
-          return std::vector<std::string>{};
-        }
-        else
-        {
-          return "";
-        }
+        lines.push_back(line);
       }
 
-      return std::move(inputTextOrScriptFile);
-    }())
+      return lines;
+    }
+
+    return *pText;
+  }
+  else
+  {
+    return "";
+  }
+}
+
+
+View::View(
+  std::string windowTitle,
+  ViewInput inputData,
+  const bool showYesNoButtons,
+  const bool wrapLines)
+  : mTitle(std::move(windowTitle))
+  , mText(initialText(inputData, wrapLines))
   , mpScriptPipe(nullptr)
   , mScriptPipeFd(-1)
+  , mMenuItems(std::holds_alternative<MenuItems>(inputData)
+      ? std::move(std::get<MenuItems>(inputData))
+      : MenuItems{})
   , mShowYesNoButtons(showYesNoButtons)
 {
   // We are executing a script instead of showing some text.
   // Start executing it, and grab the file descriptor for polling.
-  if (inputTextIsScriptFile)
+  if (auto pScriptFile = std::get_if<ScriptFile>(&inputData))
   {
-    mpScriptPipe = popen((inputTextOrScriptFile + " 2>&1 ").c_str(), "r");
+    mpScriptPipe = popen((pScriptFile->path + " 2>&1 ").c_str(), "r");
     if (!mpScriptPipe)
     {
       throw std::runtime_error("Failed to execute script");
@@ -77,23 +102,17 @@ View::View(
       throw std::runtime_error("Failed to execute script");
     }
   }
-  else if (wrapLines)
-  {
-    std::stringstream stream{std::get<std::string>(mText)};
-    std::vector<std::string> lines;
-    for (std::string line; std::getline(stream, line); )
-    {
-      lines.push_back(line);
-    }
-
-    mText = std::move(lines);
-  }
 }
 
 
 View::~View()
 {
   closeScriptPipe();
+}
+
+
+void View::handleEvent(const SDL_Event& event)
+{
 }
 
 

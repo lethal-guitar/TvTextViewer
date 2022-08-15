@@ -22,6 +22,7 @@
 #pragma once
 
 #include "imgui.h"
+#include <SDL_events.h>
 
 #include <cstdio>
 #include <string>
@@ -30,15 +31,26 @@
 #include <vector>
 
 
+struct ScriptFile
+{
+  std::string path;
+};
+
+using MenuItems = std::vector<std::string>;
+
+using ViewInput = std::variant<std::string, ScriptFile, MenuItems>;
+
+
 class View {
 public:
   View(
     std::string windowTitle,
-    std::string inputTextOrScriptFile,
+    ViewInput inputData,
     bool showYesNoButtons,
-    bool wrapLines,
-    bool inpuTextIsScriptFile);
+    bool wrapLines);
   ~View();
+
+  void handleEvent(const SDL_Event& event);
 
   std::optional<int> draw(const ImVec2& windowSize);
 
@@ -50,6 +62,8 @@ private:
   std::variant<std::string, std::vector<std::string>> mText;
   FILE* mpScriptPipe;
   int mScriptPipeFd;
+
+  MenuItems mMenuItems;
 
   std::optional<int> mExitCode;
   bool mShowYesNoButtons;

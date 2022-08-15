@@ -70,6 +70,7 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
         ("y,yes_button", "shows a yes button with different exit code")
         ("e,error_display", "format as error, background will be red")
         ("w,wrap_lines", "wrap long lines of text. WARNING: could be slow for large files!")
+        ("menu", "", cxxopts::value<std::vector<std::string>>())
         ("h,help", "show help")
       ;
 
@@ -91,7 +92,7 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
 
       // Verification: Make sure there's some input, otherwise print an error and
       // exit.
-      if (!result.count("input_file") && !result.count("message") && !result.count("script_file"))
+      if (!result.count("input_file") && !result.count("message") && !result.count("script_file") && !result.count("menu"))
       {
         std::cerr << "Error: No input given\n\n";
         std::cerr << options.help({""}) << '\n';
@@ -100,9 +101,11 @@ std::optional<cxxopts::ParseResult> parseArgs(int argc, char** argv)
 
       // Make sure that mutually exclusive options aren't used at the same time,
       // print an error and exit if so.
-      if (result.count("input_file") && result.count("message"))
+      if (!(
+        result.count("input_file") ^ result.count("message") ^
+        result.count("script_file") ^ result.count("menu")))
       {
-        std::cerr << "Error: Cannot use input_file and message at the same time\n\n";
+        std::cerr << "Error: Can only use one of --input_file, --message, --script_file, or --menu at the same time\n\n";
         std::cerr << options.help({""}) << '\n';
         return {};
       }
@@ -167,12 +170,13 @@ std::string replaceEscapeSequences(const std::string& original)
 }
 
 
-// When running a script (option -s/--script given), this returns the path
-// of the script to run.
-// Otherwise, it returns the text that should be displayed in the viewer.
-std::string readInputOrScriptName(const cxxopts::ParseResult& args)
+ViewInput determineInputData(const cxxopts::ParseResult& args)
 {
-  if (args.count("input_file"))
+  if (args.count("menu"))
+  {
+    return args["menu"].as<std::vector<std::string>>();
+  }
+  else if (args.count("input_file"))
   {
     // If an input file is specified, we load the entire file into
     // memory and return its content
@@ -197,7 +201,7 @@ std::string readInputOrScriptName(const cxxopts::ParseResult& args)
   }
   else if (args.count("script_file"))
   {
-    return args["script_file"].as<std::string>();
+    return ScriptFile{args["script_file"].as<std::string>()};
   }
   else
   {
@@ -271,10 +275,9 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
   // avoid making the View dependent on cxxopts.
   auto view = View{
     determineTitle(args),
-    readInputOrScriptName(args),
+    determineInputData(args),
     args.count("yes_button") > 0,
-    args.count("wrap_lines") > 0,
-    args.count("script_file") > 0};
+    args.count("wrap_lines") > 0};
 
   const auto& io = ImGui::GetIO();
 
@@ -289,12 +292,20 @@ int run(SDL_Window* pWindow, const cxxopts::ParseResult& args)
       // Forward events to Dear ImGui
       ImGui_ImplSDL2_ProcessEvent(&event);
 
+      // Forward events to view
+      view.handleEvent(event);
+
       // Check if we need to quit, this directly handles some controller events.
       // Most controller events are handled by ImGui instead.
       if (
+        // Quit event
         event.type == SDL_QUIT ||
+
+        // Controller buttons
         (event.type == SDL_CONTROLLERBUTTONDOWN &&
          (event.cbutton.button == SDL_CONTROLLER_BUTTON_GUIDE || event.cbutton.button == SDL_CONTROLLER_BUTTON_BACK)) ||
+
+        // Window closed
         (event.type == SDL_WINDOWEVENT &&
          event.window.event == SDL_WINDOWEVENT_CLOSE &&
          event.window.windowID == SDL_GetWindowID(pWindow))
