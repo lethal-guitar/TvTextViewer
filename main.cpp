@@ -31,6 +31,7 @@
 #include <SDL.h>
 
 #include <cstdlib>
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 #include <optional>
