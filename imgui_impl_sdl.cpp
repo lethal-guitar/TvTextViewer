@@ -357,6 +357,17 @@ static void ImGui_ImplSDL2_UpdateGamepads(const std::vector<SDL_GameController*>
       mapAnalog(ImGuiNavInput_LStickRight,   SDL_CONTROLLER_AXIS_LEFTX, +thumb_dead_zone, +32767);
       mapAnalog(ImGuiNavInput_LStickUp,      SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32767);
       mapAnalog(ImGuiNavInput_LStickDown,    SDL_CONTROLLER_AXIS_LEFTY, +thumb_dead_zone, +32767);
+
+      // Also map left stick to Dpad navigation so it moves focus between
+      // widgets (e.g. Yes/No buttons), not only scroll content.
+      mapAnalog(ImGuiNavInput_DpadLeft,      SDL_CONTROLLER_AXIS_LEFTX, -thumb_dead_zone, -32768);
+      mapAnalog(ImGuiNavInput_DpadRight,     SDL_CONTROLLER_AXIS_LEFTX, +thumb_dead_zone, +32767);
+      mapAnalog(ImGuiNavInput_DpadUp,        SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32767);
+      mapAnalog(ImGuiNavInput_DpadDown,      SDL_CONTROLLER_AXIS_LEFTY, +thumb_dead_zone, +32767);
+
+      // Map analog triggers (L2/R2) to Activate so they work like A/Start.
+      mapAnalog(ImGuiNavInput_Activate,      SDL_CONTROLLER_AXIS_TRIGGERLEFT,  0, +32767);
+      mapAnalog(ImGuiNavInput_Activate,      SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 0, +32767);
     }
 }
 
