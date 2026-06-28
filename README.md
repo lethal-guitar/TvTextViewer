@@ -1,5 +1,7 @@
 # TvTextViewer
 
+⚠️This project is archived, I have no plans for further development or maintenance.
+
 This is a small utility for showing text files in a full-screen window with gamepad controls.
 It's meant for showing log files, instructions, error messages etc. on devices like TV boxes or gaming handhelds
 which typically don't have a keyboard/mouse.
